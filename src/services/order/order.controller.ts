@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as orderService from "./order.service";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware";
+import type { OrderStatus } from "../../generated/prisma/client";
 
 const buildResponse = (success: boolean, message: string, data: Record<string, unknown> = {}) => ({
   success,
@@ -51,8 +52,10 @@ export const getOrderById = async (req: AuthenticatedRequest, res: Response) => 
     const userId = req.user?.id;
     if (!userId) return res.status(401).json(buildResponse(false, "Unauthorized"));
 
-    const { id } = req.params;
-    const order = await orderService.getOrderById(id as string);
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
+    const order = await orderService.getOrderById(id);
     if (!order || (order as any).isDeleted) return res.status(404).json(buildResponse(false, "Order not found"));
     if ((order as any).userId !== userId) return res.status(403).json(buildResponse(false, "Forbidden"));
 
@@ -67,17 +70,20 @@ export const updateOrder = async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json(buildResponse(false, "Unauthorized"));
 
-    const { id } = req.params;
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
     const { status } = req.body;
 
-    const order = await orderService.getOrderById(id as string);
+    const order = await orderService.getOrderById(id);
     if (!order || (order as any).isDeleted) return res.status(404).json(buildResponse(false, "Order not found"));
     if ((order as any).userId !== userId) return res.status(403).json(buildResponse(false, "Forbidden"));
 
     if (typeof status === "undefined") return res.status(400).json(buildResponse(false, "status is required"));
     if (!ORDER_STATUSES.includes(status)) return res.status(400).json(buildResponse(false, "Invalid status"));
+    const statusValue = status as OrderStatus;
 
-    const updated = await orderService.updateOrderStatus(id as string, status);
+    const updated = await orderService.updateOrderStatus(id, statusValue);
     return res.json(buildResponse(true, "Order updated", { order: updated }));
   } catch (error) {
     return res.status(500).json(buildResponse(false, "Failed to update order"));
@@ -89,8 +95,10 @@ export const deleteOrder = async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json(buildResponse(false, "Unauthorized"));
 
-    const { id } = req.params;
-    const order = await orderService.getOrderById(id as string);
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
+    const order = await orderService.getOrderById(id);
     if (!order || (order as any).isDeleted) return res.status(404).json(buildResponse(false, "Order not found"));
     if ((order as any).userId !== userId) return res.status(403).json(buildResponse(false, "Forbidden"));
 

@@ -1,4 +1,5 @@
 import prisma from "../../lib/prisma";
+import type { ProductStatus } from "../../generated/prisma/client";
 
 export async function createProduct(data: {
   name: string;
@@ -7,8 +8,14 @@ export async function createProduct(data: {
   stock: number;
   categoryId: string;
   userId: string;
-  status?: string | null;
+  status?: ProductStatus | null;
 }) {
+  let statusValue: ProductStatus | undefined = undefined;
+  if (typeof data.status === "string") {
+    const s = data.status as ProductStatus;
+    if (s === "ACTIVE" || s === "INACTIVE" || s === "OUT_OF_STOCK") statusValue = s;
+  }
+
   return prisma.product.create({
     data: {
       name: data.name,
@@ -17,7 +24,7 @@ export async function createProduct(data: {
       stock: Math.floor(data.stock),
       category: { connect: { id: data.categoryId } },
       user: { connect: { id: data.userId } },
-      status: data.status ?? undefined,
+      status: statusValue ?? undefined,
     },
     include: {
       category: { select: { id: true, name: true } },
@@ -52,7 +59,7 @@ export async function updateProduct(id: string, data: {
   description?: string | null;
   price?: number;
   stock?: number;
-  status?: string | null;
+  status?: ProductStatus | null;
   categoryId?: string;
 }) {
   const updateData: any = {};
@@ -60,7 +67,10 @@ export async function updateProduct(id: string, data: {
   if (typeof data.description === "string") updateData.description = data.description;
   if (typeof data.price === "number") updateData.price = Math.floor(data.price);
   if (typeof data.stock === "number") updateData.stock = Math.floor(data.stock);
-  if (typeof data.status === "string") updateData.status = data.status;
+  if (typeof data.status === "string") {
+    const s = data.status as ProductStatus;
+    if (s === "ACTIVE" || s === "INACTIVE" || s === "OUT_OF_STOCK") updateData.status = s;
+  }
   if (typeof data.categoryId === "string") updateData.category = { connect: { id: data.categoryId } };
 
   return prisma.product.update({

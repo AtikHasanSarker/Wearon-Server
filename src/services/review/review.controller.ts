@@ -48,7 +48,9 @@ export const getAllReviews = async (_req: Request, res: Response) => {
 
 export const getReviewById = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
     const review = await reviewService.getReviewById(id);
     if (!review || (review as any).isDeleted) return res.status(404).json(buildResponse(false, "Review not found"));
     return res.json(buildResponse(true, "Review retrieved", { review }));
@@ -62,10 +64,12 @@ export const updateReview = async (req: AuthenticatedRequest, res: Response) => 
     const userId = req.user?.id;
     if (!userId) return res.status(401).json(buildResponse(false, "Unauthorized"));
 
-    const { id } = req.params;
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
     const { rating, comment } = req.body;
 
-    const review = await reviewService.getReviewById(id as string);
+    const review = await reviewService.getReviewById(id);
     if (!review || (review as any).isDeleted) return res.status(404).json(buildResponse(false, "Review not found"));
 
     if ((review as any).user?.id !== userId) return res.status(403).json(buildResponse(false, "Forbidden"));
@@ -92,8 +96,10 @@ export const deleteReview = async (req: AuthenticatedRequest, res: Response) => 
     const userId = req.user?.id;
     if (!userId) return res.status(401).json(buildResponse(false, "Unauthorized"));
 
-    const { id } = req.params;
-    const review = await reviewService.getReviewById(id as string);
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
+    const review = await reviewService.getReviewById(id);
     if (!review || (review as any).isDeleted) return res.status(404).json(buildResponse(false, "Review not found"));
 
     if ((review as any).user?.id !== userId) return res.status(403).json(buildResponse(false, "Forbidden"));

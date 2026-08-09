@@ -34,7 +34,9 @@ export const getAllCategories = async (_req: Request, res: Response) => {
 
 export const getCategoryById = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
     const category = await categoryService.getCategoryById(id);
     if (!category || (category as any).isDeleted) {
       return res.status(404).json(buildResponse(false, "Category not found"));
@@ -48,7 +50,9 @@ export const getCategoryById = async (req: Request, res: Response) => {
 
 export const updateCategory = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
     const { name, description } = req.body;
 
     const category = await categoryService.getCategoryById(id);
@@ -65,7 +69,9 @@ export const updateCategory = async (req: AuthenticatedRequest, res: Response) =
 
 export const deleteCategory = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
     const category = await categoryService.getCategoryById(id);
     if (!category || (category as any).isDeleted) {
       return res.status(404).json(buildResponse(false, "Category not found"));

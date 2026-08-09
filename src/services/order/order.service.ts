@@ -1,4 +1,5 @@
 import prisma from "../../lib/prisma";
+import type { OrderStatus } from "../../generated/prisma/client";
 
 export async function createOrder(data: { userId: string; productId: string; quantity: number }) {
   const { userId, productId, quantity } = data;
@@ -47,7 +48,7 @@ export async function getOrderById(id: string) {
   });
 }
 
-export async function updateOrderStatus(id: string, status: string) {
+export async function updateOrderStatus(id: string, status: OrderStatus) {
   return prisma.order.update({ where: { id }, data: { status }, include: { product: { select: { id: true, name: true, price: true } } } });
 }
 

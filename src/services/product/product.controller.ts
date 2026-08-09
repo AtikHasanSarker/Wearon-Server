@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as productService from "./product.service";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware";
 import prisma from "../../lib/prisma";
+import type { ProductStatus } from "../../generated/prisma/client";
 
 const buildResponse = (success: boolean, message: string, data: Record<string, unknown> = {}) => ({
   success,
@@ -34,6 +35,12 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(400).json(buildResponse(false, "Category not found"));
     }
 
+    let statusValue: ProductStatus | undefined = undefined;
+    if (typeof status === "string") {
+      const s = status as ProductStatus;
+      if (s === "ACTIVE" || s === "INACTIVE" || s === "OUT_OF_STOCK") statusValue = s;
+    }
+
     const product = await productService.createProduct({
       name,
       description,
@@ -41,7 +48,7 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response) =>
       stock: stockNum,
       categoryId,
       userId,
-      status,
+      status: statusValue ?? null,
     });
 
     return res.status(201).json(buildResponse(true, "Product created", { product }));
@@ -61,7 +68,9 @@ export const getAllProducts = async (_req: Request, res: Response) => {
 
 export const getProductById = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
     const product = await productService.getProductById(id);
     if (!product || (product as any).isDeleted) {
       return res.status(404).json(buildResponse(false, "Product not found"));
@@ -74,10 +83,12 @@ export const getProductById = async (req: Request, res: Response) => {
 
 export const updateProduct = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
     const { name, description, price, stock, status, categoryId } = req.body;
 
-    const product = await productService.getProductById(id as string);
+    const product = await productService.getProductById(id);
     if (!product || (product as any).isDeleted) {
       return res.status(404).json(buildResponse(false, "Product not found"));
     }
@@ -102,7 +113,10 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
       if (!Number.isFinite(stockNum) || stockNum < 0) return res.status(400).json(buildResponse(false, "stock must be a non-negative number"));
       updateData.stock = stockNum;
     }
-    if (typeof status === "string") updateData.status = status;
+    if (typeof status === "string") {
+      const s = status as ProductStatus;
+      if (s === "ACTIVE" || s === "INACTIVE" || s === "OUT_OF_STOCK") updateData.status = s;
+    }
     if (typeof categoryId === "string") updateData.category = { connect: { id: categoryId } };
 
     const updated = await productService.updateProduct(id as string, updateData);
@@ -114,8 +128,10 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
 
 export const deleteProduct = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const product = await productService.getProductById(id as string);
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) return res.status(400).json(buildResponse(false, "Invalid id"));
+    const product = await productService.getProductById(id);
     if (!product || (product as any).isDeleted) {
       return res.status(404).json(buildResponse(false, "Product not found"));
     }
