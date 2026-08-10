@@ -26,7 +26,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// Register global error handler (must be last)
 app.use(errorHandler);
 
 export default app;
